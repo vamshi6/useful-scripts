@@ -88,4 +88,24 @@ else
     echo "Warning: No environment specified. Using default configuration."
 fi
 
-# ... Rest of the script remains the same
+# Get the project ID based on the runner tag
+project_id=$(get_project_id_by_runner_tag "$runner_tag")
+
+if [ -n "$project_id" ]; then
+    runner_id=$(get_runner_id_by_runner_tag "$runner_tag")
+
+    if [ -n "$runner_id" ]; then
+        if [ "$action" = "replace" ] && [ "$#" -eq 5 ]; then
+            replacement_tag="$5"
+            update_runner_tags "$runner_id" "$new_tags" "$action" "$replacement_tag"
+        else
+            update_runner_tags "$runner_id" "$new_tags" "$action"
+        fi
+    else
+        echo "Runner with tag \"$runner_tag\" not found."
+        exit 1
+    fi
+else
+    echo "No project found with a GitLab Runner tag \"$runner_tag\"."
+    exit 1
+fi
