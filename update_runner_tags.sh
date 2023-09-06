@@ -77,3 +77,80 @@ else
     echo "Runner with tag \"$tag_to_find\" not found."
     exit 1
 fi
+
+
+
+
+#!/bin/bash
+
+# Set your GitLab API token and URL
+GITLAB_API_TOKEN="YOUR_GITLAB_API_TOKEN"
+GITLAB_URL="https://your-gitlab-url.com"  # Replace with your GitLab URL
+
+# Function to get project ID by a specific tag
+get_project_id_by_runner_tag() {
+    local runner_tag="$1"
+    local projects_info
+    projects_info=$(curl --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" "$GITLAB_URL/api/v4/projects?membership=true")
+    local project_id
+    project_id=$(echo "$projects_info" | jq -r ".[] | select(.runners_token | contains(\"$runner_tag\")) | .id")
+    echo "$project_id"
+}
+
+# Function to perform an action on a project
+perform_project_action() {
+    local project_id="$1"
+    local action="$2"
+
+    case "$action" in
+        "add")
+            # Add your code here to perform the 'add' action on the project with ID $project_id
+            echo "Adding action on project $project_id"
+            ;;
+        "remove")
+            # Add your code here to perform the 'remove' action on the project with ID $project_id
+            echo "Removing action on project $project_id"
+            ;;
+        "replace")
+            # Add your code here to perform the 'replace' action on the project with ID $project_id
+            echo "Replacing action on project $project_id"
+            ;;
+        *)
+            echo "Error: Invalid action. Please use 'add,' 'remove,' or 'replace'."
+            exit 1
+            ;;
+    esac
+}
+
+# Display usage information
+display_usage() {
+    echo "Usage: $0 <runner_tag> <action>"
+    echo "  <runner_tag>: The existing tag on the GitLab Runner associated with the project."
+    echo "  <action>: Specify either 'add,' 'remove,' or 'replace' to perform the corresponding action on the project."
+    exit 1
+}
+
+# Check for the correct number of command-line arguments
+if [ "$#" -ne 2 ]; then
+    display_usage
+fi
+
+runner_tag="$1"
+action="$2"
+
+# Validate action input
+if [ "$action" != "add" ] && [ "$action" != "remove" ] && [ "$action" != "replace" ]; then
+    echo "Error: Invalid action. Please use 'add,' 'remove,' or 'replace'."
+    display_usage
+fi
+
+project_id=$(get_project_id_by_runner_tag "$runner_tag")
+
+if [ -n "$project_id" ]; then
+    perform_project_action "$project_id" "$action"
+else
+    echo "No project found with a GitLab Runner tag \"$runner_tag\"."
+    exit 1
+fi
+
+
