@@ -16,12 +16,17 @@ jamfinstall() {
   /bin/ln -s /usr/local/jamf/bin/jamf /usr/local/bin
 }
 
+# Create the Jamf configuration file
+echo "Creating Jamf configuration file..."
+/usr/local/bin/jamf createConf -url "https://$JAMFURL/" -verifySSLCert always
+
 # Check if jamf is installed
 if ! command -v jamf &>/dev/null; then
   echo 'Jamf is not installed.'
   shouldEnroll=true
 else
   # `jamf` command exists, check the connection to the server
+  echo 'Checking Jamf Pro connection...'
   /usr/local/bin/jamf checkJSSConnection -retry 1
   status=$?
 
@@ -67,16 +72,20 @@ if [ "$shouldEnroll" = true ]; then
   
   # Set the computer name based on instance ID
   instance_id=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/instance-id)
+  echo "Setting computer name to $instance_id"
   /usr/local/bin/jamf setComputername --name "$instance_id"
   
   # Run the enrollment
+  echo 'Running Jamf enrollment...'
   /usr/local/bin/jamf enroll -invitation "$computerInvitation" -noPolicy
   enrolled=$?
   
   if [ $enrolled -eq 0 ]; then
+    echo 'Jamf enrollment successful.'
     /usr/local/bin/jamf update
     /usr/local/bin/jamf policy -event enrollmentComplete
-    enrolled=$?
+  else
+    echo 'Jamf enrollment failed.'
   fi
   
   /bin/rm -rf /private/tmp/Binaries
